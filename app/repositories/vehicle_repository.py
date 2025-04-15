@@ -1,4 +1,4 @@
-from sqlalchemy import func, and_, between
+from sqlalchemy import func, and_, between, or_
 from app.models.vehicle import Vehicle
 from app import db
 from typing import List, Optional
@@ -30,7 +30,12 @@ class VehicleRepository:
             upper_bound = int(filters["mileage"] * 1.2)
             query = query.filter(between(Vehicle.listing_mileage, lower_bound, upper_bound))
 
-        return query.order_by(Vehicle.listing_mileage).limit(limit).all()
+        query = query.order_by(Vehicle.listing_mileage)
+        
+        if limit:
+            query = query.limit(limit)
+
+        return query.all()
 
     @staticmethod
     def get_average_price_with_filters(filters: dict) -> Optional[float]:
@@ -40,22 +45,22 @@ class VehicleRepository:
                 Vehicle.year == filters["year"],
                 Vehicle.make == filters["make"],
                 Vehicle.model == filters["model"],
-                Vehicle.listing_price.isnot(None)
+                Vehicle.listing_price.isnot(None),
             )
         )
 
         if filters.get("trim"):
             query = query.filter(Vehicle.trim == filters["trim"])
-        if filters.get("color"):            
-            query = query.filter(Vehicle.exterior_color == filters["color"])            
+        if filters.get("color"):
+            query = query.filter(Vehicle.exterior_color == filters["color"])
         if filters.get("dealer_state"):
             query = query.filter(Vehicle.dealer_state == filters["dealer_state"])
         if filters.get("mileage"):
             lower_bound = int(filters["mileage"] * 0.8)
             upper_bound = int(filters["mileage"] * 1.2)
-            query = query.filter(between(Vehicle.listing_mileage, lower_bound, upper_bound))
-            print("query", query)
-            
+            query = query.filter(
+                between(Vehicle.listing_mileage, lower_bound, upper_bound)
+            )
 
         result = query.scalar()
         return float(result) if result else None
